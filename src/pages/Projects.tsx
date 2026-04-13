@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,7 +39,6 @@ export default function Projects() {
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -59,7 +57,6 @@ export default function Projects() {
   const createProject = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("projects").insert({
-        user_id: user!.id,
         name,
         type,
         priority,

@@ -3,8 +3,6 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
@@ -12,7 +10,6 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Team from "./pages/Team";
 import Clients from "./pages/Clients";
 import Billing from "./pages/Billing";
-import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,20 +20,17 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/" element={<Index />} />
-              <Route path="/projets" element={<Projects />} />
-              <Route path="/projets/:id" element={<ProjectDetail />} />
-              <Route path="/equipe" element={<Team />} />
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/facturation" element={<Billing />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/projets" element={<Projects />} />
+            <Route path="/projets/:id" element={<ProjectDetail />} />
+            <Route path="/equipe" element={<Team />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/facturation" element={<Billing />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

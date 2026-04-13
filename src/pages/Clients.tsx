@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, Mail, Phone, FolderKanban, UserCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,7 +17,6 @@ export default function Clients() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -37,7 +35,6 @@ export default function Clients() {
   const createClient = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("clients").insert({
-        user_id: user!.id,
         name,
         email: email || null,
         phone: phone || null,
