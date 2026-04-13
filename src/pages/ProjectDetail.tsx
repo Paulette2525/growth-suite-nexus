@@ -327,6 +327,7 @@ export default function ProjectDetail() {
         </Card>
       )}
 
+      <Dialog open={taskDialogOpen} onOpenChange={(v) => { setTaskDialogOpen(v); if (!v) resetTaskForm(); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingTask ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle>
