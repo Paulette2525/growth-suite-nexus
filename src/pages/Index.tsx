@@ -1,30 +1,69 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { FolderKanban, ListTodo, Users, Receipt, AlertTriangle, Clock } from "lucide-react";
-
-const kpis = [
-  { label: "Projets actifs", value: 8, icon: FolderKanban, color: "text-primary" },
-  { label: "Tâches en cours", value: 23, icon: ListTodo, color: "text-warning" },
-  { label: "Membres", value: 5, icon: Users, color: "text-success" },
-  { label: "Factures en attente", value: 3, icon: Receipt, color: "text-destructive" },
-];
-
-const projects = [
-  { name: "Site e-commerce Luxe", type: "Site", progress: 72, status: "En cours" },
-  { name: "SaaS Analytics Pro", type: "SaaS", progress: 45, status: "En cours" },
-  { name: "Plateforme RH", type: "Plateforme", progress: 90, status: "En cours" },
-  { name: "App Mobile Fitness", type: "Site", progress: 20, status: "En retard" },
-];
-
-const activities = [
-  { text: "Nouvelle tâche ajoutée au projet SaaS Analytics", time: "Il y a 2h", icon: ListTodo },
-  { text: "Marie a terminé le design de la page d'accueil", time: "Il y a 4h", icon: FolderKanban },
-  { text: "Facture #1042 envoyée au client Dupont", time: "Hier", icon: Receipt },
-  { text: "Thomas a rejoint l'équipe", time: "Hier", icon: Users },
-];
+import { FolderKanban, ListTodo, Users, Receipt, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["all-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tasks").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ["invoices"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("invoices").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const activeProjects = projects.filter((p) => p.status === "En cours").length;
+  const inProgressTasks = tasks.filter((t) => t.status === "in_progress").length;
+  const pendingInvoices = invoices.filter((i) => i.status !== "Payé").length;
+
+  const kpis = [
+    { label: "Projets actifs", value: activeProjects, icon: FolderKanban, color: "text-primary" },
+    { label: "Tâches en cours", value: inProgressTasks, icon: ListTodo, color: "text-warning" },
+    { label: "Membres", value: profiles.length, icon: Users, color: "text-success" },
+    { label: "Factures en attente", value: pendingInvoices, icon: Receipt, color: "text-destructive" },
+  ];
+
+  // Calculate progress per project based on tasks
+  const projectsWithProgress = projects.slice(0, 4).map((project) => {
+    const projectTasks = tasks.filter((t) => t.project_id === project.id);
+    const doneTasks = projectTasks.filter((t) => t.status === "done").length;
+    const progress = projectTasks.length > 0 ? Math.round((doneTasks / projectTasks.length) * 100) : 0;
+    return { ...project, progress };
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -32,7 +71,6 @@ export default function Dashboard() {
         <p className="text-muted-foreground mt-1">Vue d'ensemble de vos projets et activités</p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
           <Card key={kpi.label}>
@@ -52,25 +90,22 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Projects Progress */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">Avancement des projets</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            {projects.map((project) => (
-              <div key={project.name} className="space-y-2">
+            {projectsWithProgress.length === 0 && (
+              <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
+            )}
+            {projectsWithProgress.map((project) => (
+              <div key={project.id} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{project.name}</span>
                     <Badge variant="secondary" className="text-xs">{project.type}</Badge>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {project.status === "En retard" && (
-                      <AlertTriangle className="h-4 w-4 text-destructive" />
-                    )}
-                    <span className="text-sm text-muted-foreground">{project.progress}%</span>
-                  </div>
+                  <span className="text-sm text-muted-foreground">{project.progress}%</span>
                 </div>
                 <Progress value={project.progress} className="h-2" />
               </div>
@@ -78,28 +113,12 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Activité récente</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {activities.map((activity, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="p-2 rounded-lg bg-accent shrink-0">
-                    <activity.icon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm leading-snug">{activity.text}</p>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground">Les activités apparaîtront ici au fur et à mesure.</p>
           </CardContent>
         </Card>
       </div>
