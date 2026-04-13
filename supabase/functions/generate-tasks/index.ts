@@ -24,7 +24,6 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch intake form
     const { data: intake, error: fetchErr } = await supabase
       .from("client_intake_forms")
       .select("*")
@@ -32,17 +31,38 @@ serve(async (req) => {
       .single();
     if (fetchErr) throw fetchErr;
 
+    const desiredPages = Array.isArray(intake.desired_pages) ? intake.desired_pages.join(", ") : "Non spécifié";
+
     const formSummary = `
 Projet: ${intake.project_name}
 Type: ${intake.project_type}
 Description: ${intake.description}
-Audience cible: ${intake.target_audience || "Non spécifié"}
+
+--- ACTIVITÉ & OFFRES ---
+Produit / Service: ${intake.product_description || "Non spécifié"}
+Offres / Formules / Tarifs: ${intake.offers_description || "Non spécifié"}
+Site ou réseau existant: ${intake.existing_website || "Non spécifié"}
+
+--- CIBLE & MARCHÉ ---
+Client idéal: ${intake.ideal_customer || intake.target_audience || "Non spécifié"}
+Concurrents: ${intake.competitors || "Non spécifié"}
+Positionnement / différence clé: ${intake.positioning || "Non spécifié"}
+
+--- STRUCTURE DU SITE ---
+Pages souhaitées: ${desiredPages}
+Exemples de sites inspirants: ${intake.design_references || "Non spécifié"}
 Fonctionnalités clés: ${intake.key_features || "Non spécifié"}
-Références design: ${intake.design_references || "Non spécifié"}
-Budget: ${intake.budget_range || "Non spécifié"}
-Deadline: ${intake.desired_deadline || "Non spécifié"}
-Préférences techniques: ${intake.tech_preferences || "Non spécifié"}
+
+--- IDENTITÉ VISUELLE ---
+Couleurs préférées: ${intake.primary_colors || "Non spécifié"}
+Style visuel: ${intake.visual_style || "Non spécifié"}
+Ambiance / ton: ${intake.brand_tone || "Non spécifié"}
 Branding existant: ${intake.has_existing_branding ? "Oui" : "Non"}
+Logo: ${intake.logo_url ? "Fourni" : "Non fourni"}
+Charte graphique: ${intake.brand_guide_url ? "Fournie" : "Non fournie"}
+
+--- DÉLAIS ---
+Deadline: ${intake.desired_deadline || "Non spécifié"}
 Notes: ${intake.additional_notes || "Aucune"}
     `.trim();
 
@@ -113,7 +133,6 @@ Notes: ${intake.additional_notes || "Aucune"}
       generatedTasks = parsed.tasks || [];
     }
 
-    // Insert tasks into DB
     if (generatedTasks.length > 0) {
       const taskRows = generatedTasks.map((t: any) => ({
         project_id: projectId,
@@ -138,11 +157,11 @@ Notes: ${intake.additional_notes || "Aucune"}
         messages: [
           {
             role: "system",
-            content: `Tu es un expert en développement SaaS avec Lovable.dev. Génère un prompt structuré et détaillé à donner à Lovable pour démarrer le développement de l'application. Le prompt doit inclure : le nom du projet, la stack technique, les pages à créer, les composants UI, le design system, les fonctionnalités backend (Supabase), et toute intégration nécessaire. Sois précis et actionnable. Écris le prompt en français.`,
+            content: `Tu es un expert en développement SaaS avec Lovable.dev. Génère un prompt structuré et détaillé à donner à Lovable pour démarrer le développement de l'application. Le prompt doit inclure : le nom du projet, la stack technique, les pages à créer, les composants UI, le design system (en utilisant les couleurs et le style visuel du client), les fonctionnalités backend (Supabase), et toute intégration nécessaire. Sois précis et actionnable. Écris le prompt en français.`,
           },
           {
             role: "user",
-            content: `Voici le brief client :\n\n${formSummary}\n\nGénère le prompt Lovable.`,
+            content: `Voici le brief client complet :\n\n${formSummary}\n\nGénère le prompt Lovable.`,
           },
         ],
       }),
@@ -154,7 +173,6 @@ Notes: ${intake.additional_notes || "Aucune"}
       generatedPrompt = promptResult.choices?.[0]?.message?.content || "";
     }
 
-    // Update intake form with generated data
     await supabase
       .from("client_intake_forms")
       .update({
@@ -163,11 +181,6 @@ Notes: ${intake.additional_notes || "Aucune"}
         status: "traité",
       })
       .eq("id", intakeId);
-
-    // Also store prompt on project description if empty
-    if (generatedPrompt && !intake.description) {
-      await supabase.from("projects").update({ description: intake.description }).eq("id", projectId);
-    }
 
     return new Response(
       JSON.stringify({ success: true, tasksCount: generatedTasks.length, hasPrompt: !!generatedPrompt }),
