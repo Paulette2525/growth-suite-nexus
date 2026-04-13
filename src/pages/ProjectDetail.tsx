@@ -68,7 +68,19 @@ export default function ProjectDetail() {
     },
   });
 
-  const { data: profiles = [] } = useQuery({
+  const { data: intakeForm } = useQuery({
+    queryKey: ["intake-form", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_intake_forms")
+        .select("generated_prompt")
+        .eq("project_id", id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
     queryKey: ["profiles"],
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id, full_name");
