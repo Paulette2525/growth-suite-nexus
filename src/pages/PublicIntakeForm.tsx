@@ -132,10 +132,7 @@ export default function PublicIntakeForm() {
         {/* Header */}
         <div className="text-center space-y-2 py-4">
           <div className="flex items-center justify-center gap-2">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-heading font-bold text-lg">
-              A
-            </div>
-            <span className="font-heading font-bold text-xl">Automax-dev</span>
+            <FileText className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-heading font-bold flex items-center justify-center gap-2 mt-4">
             <FileText className="h-6 w-6 text-primary" />
@@ -259,7 +256,7 @@ export default function PublicIntakeForm() {
         </form>
 
         <p className="text-center text-xs text-muted-foreground pb-6">
-          Propulsé par Automax-dev
+          Merci de votre confiance
         </p>
       </div>
       <Toaster />
