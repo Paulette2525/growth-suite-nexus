@@ -38,8 +38,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
+      <SidebarHeader className={collapsed ? "p-2 flex items-center justify-center" : "p-4"}>
+        <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-sm">
             A
           </div>
