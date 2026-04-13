@@ -295,7 +295,38 @@ export default function ProjectDetail() {
         ))}
       </div>
 
-      <Dialog open={taskDialogOpen} onOpenChange={(v) => { setTaskDialogOpen(v); if (!v) resetTaskForm(); }}>
+      {/* Lovable Prompt Section */}
+      {intakeForm?.generated_prompt && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Prompt Lovable généré
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(intakeForm.generated_prompt!);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                  toast({ title: "Prompt copié !" });
+                }}
+              >
+                {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                {copied ? "Copié" : "Copier"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto font-sans leading-relaxed">
+              {intakeForm.generated_prompt}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingTask ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle>
