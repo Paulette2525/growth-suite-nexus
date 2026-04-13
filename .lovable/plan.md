@@ -1,47 +1,53 @@
 
 
-## Étape 1 — Création des tables de base de données
+## Plan : Transformation en Automax-dev
 
-On commence par créer toute la structure backend avant de toucher au code. Voici les tables à créer :
+### Contexte
+Renommer l'app, corriger le bug du logo sidebar, et créer un flux complet : formulaire client → IA génère les tâches → IA génère le prompt Lovable.
 
-### Tables
+### Changements prévus
 
-1. **profiles** — Infos utilisateur (nom, email, rôle, avatar)
-   - `id` (uuid, FK → auth.users), `full_name`, `email`, `role` (Admin/Développeur/Designer/Chef de projet), `avatar_url`, `created_at`
+#### 1. Renommage "ProGest" → "Automax-dev"
+- `index.html` : titre, meta descriptions, og:title
+- `AppSidebar.tsx` : logo "A" + nom "Automax-dev"
+- `Index.tsx` : texte du dashboard
+- `mem://index.md` : mise à jour du nom
 
-2. **clients** — Fiches clients
-   - `id`, `user_id` (propriétaire), `name`, `email`, `phone`, `status` (Actif/Inactif), `created_at`
+#### 2. Fix UX sidebar logo en mode collapsed
+- Le logo "A" dans son carré bleu reste visible quand la sidebar est réduite, mais le texte "Automax-dev" disparait proprement (c'est déjà le cas mais on vérifie l'alignement et le spacing)
 
-3. **projects** — Projets
-   - `id`, `user_id`, `name`, `type` (Site/SaaS/Plateforme), `status` (En cours/Terminé/En pause/En retard), `priority` (Haute/Moyenne/Basse), `client_id` (FK → clients), `description`, `start_date`, `deadline`, `created_at`
+#### 3. Nouvelle table `client_intake_forms`
+Migration SQL pour stocker les soumissions du formulaire d'entrée :
+- `id`, `client_id` (FK → clients, nullable au départ), `project_name`, `project_type` (Site/SaaS/Plateforme/App mobile), `description`, `target_audience`, `key_features` (text), `design_references` (text), `budget_range`, `desired_deadline`, `tech_preferences` (text), `has_existing_branding` (boolean), `additional_notes`, `status` (nouveau/traité), `generated_tasks` (jsonb), `generated_prompt` (text), `created_at`
+- RLS public (comme les autres tables)
 
-4. **project_members** — Liaison projets ↔ membres
-   - `id`, `project_id`, `profile_id`
+#### 4. Page / formulaire d'intake client
+- Nouvelle route `/intake` (ou accessible depuis la page Clients)
+- Formulaire complet demandant : nom du projet, type, description détaillée, audience cible, fonctionnalités clés souhaitées, références de design, budget, deadline souhaitée, préférences techniques, branding existant, notes
+- À la soumission : le client est créé dans `clients` + le formulaire est sauvé dans `client_intake_forms` + un projet est créé dans `projects`
 
-5. **tasks** — Tâches d'un projet
-   - `id`, `project_id`, `title`, `status` (todo/in_progress/done), `priority`, `assignee_id` (FK → profiles), `created_at`
+#### 5. Intégration IA (OpenRouter)
+- Edge function `supabase/functions/generate-tasks/index.ts` qui appelle OpenRouter avec le contenu du formulaire
+- Modèle gratuit : `nvidia/nemotron-3-super-120b-a12b:free` (puissant, gratuit sur OpenRouter)
+- **Étape 1 — Génération de tâches** : L'IA analyse le formulaire et retourne une liste de tâches avec titre, description, priorité (Haute/Moyenne/Basse), et ordre suggéré. Les tâches sont insérées dans la table `tasks` liées au projet
+- **Étape 2 — Génération du prompt Lovable** : L'IA génère un prompt structuré pour démarrer le projet dans Lovable.dev. Affiché dans l'interface pour copier-coller
+- Secret nécessaire : `OPENROUTER_API_KEY` — je te demanderai de la fournir
 
-6. **invoices** — Factures
-   - `id`, `user_id`, `client_id`, `project_id`, `invoice_number`, `amount`, `status` (Brouillon/Envoyé/Payé), `date`, `created_at`
+#### 6. UX dans l'app
+- Depuis la page Clients ou Projets, bouton "Nouveau projet client" ouvre le formulaire d'intake
+- Après soumission, redirection vers la page du projet avec les tâches IA pré-générées
+- Sur la page projet, section affichant le prompt Lovable généré avec bouton "Copier"
+- L'équipe peut ensuite modifier les tâches, ajouter deadlines et assignations
 
-### Sécurité
-- RLS activé sur toutes les tables
-- Politiques basées sur `user_id = auth.uid()` pour les tables principales
-- `profiles` accessible en lecture pour les membres de la même équipe
+### Ce qui n'est PAS inclus dans cette étape
+- Gestion d'erreurs/bugs avec formulaire text + image (prochaine étape)
+- Envoi d'emails
+- Validation de maquette
 
-### Authentification
-- Inscription/connexion par email + mot de passe
-- Page Auth avec formulaire login/signup
-- Routes protégées (redirection vers /auth si non connecté)
-- Profil créé automatiquement via trigger `on_auth_user_created`
-
----
-
-**Cette étape 1 se concentre uniquement sur :**
-1. Migration SQL (tables + RLS + trigger profil)
-2. Page d'authentification (login/signup)
-3. Protection des routes
-4. Suppression des données mockées (les pages afficheront des listes vides)
-
-Les étapes suivantes connecteront chaque page (Projets, Équipe, Clients, Facturation) une par une à la base de données avec les formulaires de création fonctionnels.
+### Technique
+- 1 migration SQL (table `client_intake_forms`)
+- 1 edge function (OpenRouter)
+- 1 nouvelle page (`ClientIntakeForm.tsx`)
+- Modifications : `AppSidebar.tsx`, `index.html`, `App.tsx`, `ProjectDetail.tsx` (section prompt)
+- Secret à demander : `OPENROUTER_API_KEY`
 
