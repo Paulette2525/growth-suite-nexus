@@ -1,67 +1,77 @@
 
 
-## Plan : Refonte du formulaire client avec questions stratégiques complètes
+## Plan : Abonnements + Pages de détail Client & Membre
 
-### Objectif
-Collecter toutes les informations nécessaires pour créer automatiquement la première version de la plateforme du client.
+### 1. Table `subscriptions` (migration SQL)
 
-### Supprimer
-- Budget estimé
-- Préférences techniques
+Nouvelle table pour suivre les abonnements liés aux projets :
 
-### Nouvelles sections (ordre final)
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid PK | |
+| project_id | uuid FK projects | Projet lié |
+| name | text | Nom (ex: "Domaine OVH", "API OpenAI") |
+| type | text | "mensuel" ou "annuel" |
+| amount | numeric | Coût |
+| start_date | date | Début |
+| renewal_date | date | Prochaine échéance |
+| status | text | "actif", "expiré", "annulé" |
+| category | text | "api", "domaine", "hébergement", "autre" |
+| notes | text | Notes libres |
+| created_at, updated_at | timestamptz | |
 
-**1. Vos informations** (inchangé) — nom, email, entreprise
+RLS : Allow all (comme les autres tables du projet).
 
-**2. Votre activité & Offres**
-- Que vendez-vous / proposez-vous ? (textarea + micro)
-- Quelles sont vos offres / formules / tarifs ? (textarea + micro)
-- Avez-vous un site ou réseau social existant ? (input URL)
+### 2. Refonte de `Billing.tsx`
 
-**3. Cible & Marché** (nouveau)
-- Qui est votre client idéal ? (textarea + micro)
-- Quels sont vos principaux concurrents ? (textarea + micro)
-- Quel est votre positionnement / différence clé ? (textarea + micro)
+Ajouter un système d'onglets (Tabs) : **Factures** | **Abonnements**
 
-**4. Votre projet**
-- Nom du projet, type, description détaillée (existant)
-- Quelles pages souhaitez-vous ? — checkboxes : Accueil, À propos, Services/Offres, Contact, Blog, Témoignages, FAQ, Espace client, Portfolio, Boutique en ligne
-- Exemples de sites qui vous plaisent ? (textarea + micro, remplace "références design")
+**Onglet Abonnements :**
+- CRUD complet (ajouter, modifier, supprimer)
+- Tableau avec : nom, projet, type (mensuel/annuel), montant, échéance, statut, catégorie
+- **Alertes visuelles** : badge rouge/orange si l'échéance est dans moins de 2 semaines
+- Stats en haut : Total dépenses abonnements/mois, nombre d'abonnements actifs, prochaine échéance
 
-**5. Identité visuelle**
-- Upload logo (fichier image)
-- Upload charte graphique (PDF/image)
-- Couleurs préférées (input texte + micro)
-- Style visuel : select (Moderne & épuré, Coloré & dynamique, Sobre & professionnel, Luxe & élégant)
-- Ambiance / ton : select (Sérieux, Décontracté, Premium, Jeune & fun)
+**Stats enrichies (cards en haut) :**
+- Ajouter une 4e card : "Dépenses abonnements" (somme mensuelle des abonnements actifs)
+- Garder les 3 cards existantes (Total facturé, Payé, En attente)
 
-**6. Délais & Notes**
-- Deadline souhaitée (inchangé)
-- Autre chose à nous dire (textarea + micro, inchangé)
+### 3. Page `ClientDetail.tsx` (nouvelle)
 
-### Migration SQL
-Ajouter à `client_intake_forms` :
-- `primary_colors` text
-- `visual_style` text
-- `brand_tone` text
-- `product_description` text
-- `offers_description` text
-- `existing_website` text
-- `ideal_customer` text
-- `competitors` text
-- `positioning` text
-- `desired_pages` jsonb
-- `logo_url` text
-- `brand_guide_url` text
+Route : `/clients/:id`
 
-### Storage
-Créer bucket `client-assets` (public) pour logos et chartes.
+Contenu :
+- **En-tête** : nom, entreprise, email, téléphone, statut, date d'ajout
+- **Stats cards** : Total payé, Factures en attente, Nombre de projets
+- **Liste des projets** du client (depuis table `projects` via `client_id`)
+- **Historique des factures** du client (depuis `invoices` via `client_id`)
+- Bouton retour vers `/clients`
 
-### Edge Function
-Mettre à jour `generate-tasks/index.ts` pour inclure tous les nouveaux champs dans le prompt IA (activité, cible, marché, identité visuelle, pages souhaitées).
+Rendre les cards cliquables dans `Clients.tsx` (navigate vers `/clients/:id`).
 
-### Fichiers modifiés
-- `PublicIntakeForm.tsx` — refonte complète
-- `generate-tasks/index.ts` — enrichissement du prompt
-- 1 migration SQL
+### 4. Page `TeamMemberDetail.tsx` (nouvelle)
+
+Route : `/equipe/:id`
+
+Contenu :
+- **En-tête** : avatar, nom, email, rôle, date d'ajout
+- **Stats cards** : Tâches terminées, Taux de complétion, Projets assignés
+- **Projets** auxquels il participe (via `project_members`)
+- **Tâches assignées** groupées par statut (todo, in_progress, done)
+- **Performance** : graphique simple ou indicateurs (tâches faites ce mois, charge actuelle)
+- Bouton retour vers `/equipe`
+
+Rendre les cards cliquables dans `Team.tsx`.
+
+### 5. Routes (App.tsx)
+
+Ajouter :
+- `/clients/:id` → `ClientDetail`
+- `/equipe/:id` → `TeamMemberDetail`
+
+### Fichiers
+
+- 1 migration SQL (table `subscriptions`)
+- Nouveau : `src/pages/ClientDetail.tsx`, `src/pages/TeamMemberDetail.tsx`
+- Modifiés : `src/pages/Billing.tsx` (onglets + abonnements), `src/pages/Clients.tsx` (cards cliquables), `src/pages/Team.tsx` (cards cliquables), `src/App.tsx` (routes)
 
