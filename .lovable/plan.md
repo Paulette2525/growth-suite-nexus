@@ -1,57 +1,47 @@
 
 
-## ProGest — SaaS de gestion de projets & d'équipes
+## Étape 1 — Création des tables de base de données
 
-### Design
-- **Palette** : Cloud White (#fafbfc, #e8ecf1, #94a3b8, #3b82f6)
-- **Typo** : Sora (titres) + Manrope (corps)
-- **Layout** : Dashboard avec sidebar collapsible
-- **Langue** : Français
+On commence par créer toute la structure backend avant de toucher au code. Voici les tables à créer :
 
-### Pages & fonctionnalités
+### Tables
 
-#### 1. Authentification
-- Page de connexion / inscription (email + mot de passe)
-- Protection des routes
+1. **profiles** — Infos utilisateur (nom, email, rôle, avatar)
+   - `id` (uuid, FK → auth.users), `full_name`, `email`, `role` (Admin/Développeur/Designer/Chef de projet), `avatar_url`, `created_at`
 
-#### 2. Dashboard global
-- KPIs en haut : nombre de projets actifs, tâches en cours, membres d'équipe, factures en attente
-- Graphique d'avancement des projets (barre de progression)
-- Liste des activités récentes
-- Projets nécessitant une attention
+2. **clients** — Fiches clients
+   - `id`, `user_id` (propriétaire), `name`, `email`, `phone`, `status` (Actif/Inactif), `created_at`
 
-#### 3. Gestion de projets
-- Liste des projets avec filtres (statut, type : plateforme/site/SaaS, priorité)
-- Création de projet : nom, type, client associé, date de début/fin, description
-- Page détail projet avec :
-  - Vue Kanban des tâches (À faire / En cours / Terminé)
-  - Barre de progression
-  - Membres assignés
-  - Timeline / échéances
+3. **projects** — Projets
+   - `id`, `user_id`, `name`, `type` (Site/SaaS/Plateforme), `status` (En cours/Terminé/En pause/En retard), `priority` (Haute/Moyenne/Basse), `client_id` (FK → clients), `description`, `start_date`, `deadline`, `created_at`
 
-#### 4. Gestion d'équipes
-- Liste des membres avec rôles (Admin, Développeur, Designer, Chef de projet)
-- Invitation par email
-- Vue de la charge de travail par membre (combien de tâches assignées)
-- Profil membre avec ses projets et tâches
+4. **project_members** — Liaison projets ↔ membres
+   - `id`, `project_id`, `profile_id`
 
-#### 5. Suivi clients & facturation
-- Liste des clients avec infos de contact
-- Projets liés par client
-- Création de devis/factures simples (PDF)
-- Statuts : Brouillon → Envoyé → Payé
+5. **tasks** — Tâches d'un projet
+   - `id`, `project_id`, `title`, `status` (todo/in_progress/done), `priority`, `assignee_id` (FK → profiles), `created_at`
 
-#### 6. Sidebar navigation
-- Logo + nom de l'app
-- Dashboard, Projets, Équipe, Clients, Facturation
-- Icône de profil / déconnexion en bas
-- Collapsible en mode icônes
+6. **invoices** — Factures
+   - `id`, `user_id`, `client_id`, `project_id`, `invoice_number`, `amount`, `status` (Brouillon/Envoyé/Payé), `date`, `created_at`
 
-### Backend (Lovable Cloud)
-- Base de données : tables projets, tâches, membres, clients, factures
-- Auth avec email/mot de passe
-- RLS pour la sécurité des données
+### Sécurité
+- RLS activé sur toutes les tables
+- Politiques basées sur `user_id = auth.uid()` pour les tables principales
+- `profiles` accessible en lecture pour les membres de la même équipe
 
-### Phase 1 (implémentation initiale)
-On commence par le **dashboard**, la **sidebar**, la **gestion de projets** avec Kanban, et la **gestion d'équipe**. La facturation viendra en phase 2.
+### Authentification
+- Inscription/connexion par email + mot de passe
+- Page Auth avec formulaire login/signup
+- Routes protégées (redirection vers /auth si non connecté)
+- Profil créé automatiquement via trigger `on_auth_user_created`
+
+---
+
+**Cette étape 1 se concentre uniquement sur :**
+1. Migration SQL (tables + RLS + trigger profil)
+2. Page d'authentification (login/signup)
+3. Protection des routes
+4. Suppression des données mockées (les pages afficheront des listes vides)
+
+Les étapes suivantes connecteront chaque page (Projets, Équipe, Clients, Facturation) une par une à la base de données avec les formulaires de création fonctionnels.
 
