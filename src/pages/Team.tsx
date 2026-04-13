@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Mail, FolderKanban, ListTodo, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ export default function Team() {
   const [role, setRole] = useState("Développeur");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
@@ -215,7 +217,7 @@ export default function Team() {
           const memberProjects = projectMembers.filter((pm: any) => pm.profile_id === member.id).length;
 
           return (
-            <Card key={member.id} className="hover:shadow-md transition-shadow">
+            <Card key={member.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/equipe/${member.id}`)}>
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-12 w-12">
