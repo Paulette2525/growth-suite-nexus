@@ -17,7 +17,7 @@ export default function Clients() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
-  const { user } = useAuth();
+  const { toast } = useToast();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -36,7 +36,7 @@ export default function Clients() {
   const createClient = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("clients").insert({
-        user_id: user!.id,
+        name,
         name,
         email: email || null,
         phone: phone || null,

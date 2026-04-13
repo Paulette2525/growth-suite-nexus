@@ -39,7 +39,7 @@ export default function Projects() {
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { toast } = useToast();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -58,7 +58,7 @@ export default function Projects() {
   const createProject = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("projects").insert({
-        user_id: user!.id,
+        name,
         name,
         type,
         priority,

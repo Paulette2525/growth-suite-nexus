@@ -24,7 +24,7 @@ export default function Billing() {
   const [amount, setAmount] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
-  const { user } = useAuth();
+  const { toast } = useToast();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -61,7 +61,7 @@ export default function Billing() {
   const createInvoice = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("invoices").insert({
-        user_id: user!.id,
+        invoice_number: invoiceNumber,
         invoice_number: invoiceNumber,
         amount: parseFloat(amount),
         client_id: clientId || null,
