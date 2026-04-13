@@ -5,6 +5,7 @@ import {
   UserCircle,
   Receipt,
   ChevronLeft,
+  FilePlus2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -23,6 +24,7 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Nouveau projet", url: "/intake", icon: FilePlus2 },
   { title: "Projets", url: "/projets", icon: FolderKanban },
   { title: "Équipe", url: "/equipe", icon: Users },
   { title: "Clients", url: "/clients", icon: UserCircle },
@@ -39,11 +41,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-sm">
-            P
+            A
           </div>
           {!collapsed && (
-            <span className="font-heading font-semibold text-lg text-foreground">
-              ProGest
+            <span className="font-heading font-semibold text-lg text-foreground truncate">
+              Automax-dev
             </span>
           )}
         </div>

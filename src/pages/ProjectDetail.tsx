@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Calendar, Users, GripVertical, ListTodo } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Users, GripVertical, ListTodo, Copy, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +38,7 @@ export default function ProjectDetail() {
   const [newTaskPriority, setNewTaskPriority] = useState("Moyenne");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -62,6 +63,19 @@ export default function ProjectDetail() {
         .select("*, profiles(full_name)")
         .eq("project_id", id!)
         .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: intakeForm } = useQuery({
+    queryKey: ["intake-form", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_intake_forms")
+        .select("generated_prompt")
+        .eq("project_id", id!)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -280,6 +294,38 @@ export default function ProjectDetail() {
           </div>
         ))}
       </div>
+
+      {/* Lovable Prompt Section */}
+      {intakeForm?.generated_prompt && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Prompt Lovable généré
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(intakeForm.generated_prompt!);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                  toast({ title: "Prompt copié !" });
+                }}
+              >
+                {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                {copied ? "Copié" : "Copier"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto font-sans leading-relaxed">
+              {intakeForm.generated_prompt}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={taskDialogOpen} onOpenChange={(v) => { setTaskDialogOpen(v); if (!v) resetTaskForm(); }}>
         <DialogContent>

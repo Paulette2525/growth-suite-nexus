@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_intake_forms: {
+        Row: {
+          additional_notes: string | null
+          budget_range: string | null
+          client_company: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          created_at: string
+          description: string
+          design_references: string | null
+          desired_deadline: string | null
+          generated_prompt: string | null
+          generated_tasks: Json | null
+          has_existing_branding: boolean | null
+          id: string
+          key_features: string | null
+          project_id: string | null
+          project_name: string
+          project_type: string
+          status: string
+          target_audience: string | null
+          tech_preferences: string | null
+          updated_at: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          budget_range?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          description: string
+          design_references?: string | null
+          desired_deadline?: string | null
+          generated_prompt?: string | null
+          generated_tasks?: Json | null
+          has_existing_branding?: boolean | null
+          id?: string
+          key_features?: string | null
+          project_id?: string | null
+          project_name: string
+          project_type?: string
+          status?: string
+          target_audience?: string | null
+          tech_preferences?: string | null
+          updated_at?: string
+        }
+        Update: {
+          additional_notes?: string | null
+          budget_range?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          description?: string
+          design_references?: string | null
+          desired_deadline?: string | null
+          generated_prompt?: string | null
+          generated_tasks?: Json | null
+          has_existing_branding?: boolean | null
+          id?: string
+          key_features?: string | null
+          project_id?: string | null
+          project_name?: string
+          project_type?: string
+          status?: string
+          target_audience?: string | null
+          tech_preferences?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_intake_forms_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_intake_forms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           company: string | null
