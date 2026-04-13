@@ -8,11 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Calendar, Users } from "lucide-react";
+import { Plus, Search, Calendar, FolderKanban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { ActionMenu } from "@/components/ActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const statusColors: Record<string, string> = {
   "En cours": "bg-primary/10 text-primary",
@@ -22,9 +24,9 @@ const statusColors: Record<string, string> = {
 };
 
 const priorityColors: Record<string, string> = {
-  "Haute": "bg-destructive/10 text-destructive",
-  "Moyenne": "bg-warning/10 text-warning",
-  "Basse": "bg-muted text-muted-foreground",
+  Haute: "bg-destructive/10 text-destructive",
+  Moyenne: "bg-warning/10 text-warning",
+  Basse: "bg-muted text-muted-foreground",
 };
 
 export default function Projects() {
@@ -32,12 +34,15 @@ export default function Projects() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [open, setOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState("Site");
   const [priority, setPriority] = useState("Moyenne");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [clientId, setClientId] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,26 +59,70 @@ export default function Projects() {
     },
   });
 
-  const createProject = useMutation({
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("id, name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const resetForm = () => {
+    setName(""); setType("Site"); setPriority("Moyenne");
+    setDescription(""); setStartDate(""); setDeadline(""); setClientId("");
+    setEditingProject(null);
+  };
+
+  const openEdit = (p: any) => {
+    setEditingProject(p);
+    setName(p.name);
+    setType(p.type);
+    setPriority(p.priority);
+    setDescription(p.description || "");
+    setStartDate(p.start_date || "");
+    setDeadline(p.deadline || "");
+    setClientId(p.client_id || "");
+    setOpen(true);
+  };
+
+  const saveProject = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("projects").insert({
-        name,
-        type,
-        priority,
+      const payload = {
+        name, type, priority,
         description: description || null,
         start_date: startDate || null,
         deadline: deadline || null,
-      });
-      if (error) throw error;
+        client_id: clientId || null,
+      };
+      if (editingProject) {
+        const { error } = await supabase.from("projects").update(payload).eq("id", editingProject.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("projects").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setOpen(false);
-      setName(""); setDescription(""); setStartDate(""); setDeadline("");
-      toast({ title: "Projet créé avec succès" });
+      resetForm();
+      toast({ title: editingProject ? "Projet modifié" : "Projet créé avec succès" });
     },
     onError: (error: any) => {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteProject = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("projects").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setDeleteId(null);
+      toast({ title: "Projet supprimé" });
     },
   });
 
@@ -91,15 +140,15 @@ export default function Projects() {
           <h1 className="text-2xl font-heading font-bold">Projets</h1>
           <p className="text-muted-foreground mt-1">Gérez tous vos projets en un seul endroit</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Créer un projet</DialogTitle>
+              <DialogTitle>{editingProject ? "Modifier le projet" : "Créer un projet"}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); createProject.mutate(); }} className="space-y-4 mt-4">
+            <form onSubmit={(e) => { e.preventDefault(); saveProject.mutate(); }} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>Nom du projet</Label>
                 <Input placeholder="Mon super projet" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -128,6 +177,17 @@ export default function Projects() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <Select value={clientId} onValueChange={setClientId}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Date de début</Label>
@@ -142,8 +202,8 @@ export default function Projects() {
                 <Label>Description</Label>
                 <Textarea placeholder="Décrivez le projet..." value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
-              <Button type="submit" className="w-full" disabled={createProject.isPending}>
-                {createProject.isPending ? "Création..." : "Créer le projet"}
+              <Button type="submit" className="w-full" disabled={saveProject.isPending}>
+                {saveProject.isPending ? "Enregistrement..." : editingProject ? "Enregistrer" : "Créer le projet"}
               </Button>
             </form>
           </DialogContent>
@@ -198,10 +258,16 @@ export default function Projects() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-base">{project.name}</CardTitle>
-                  <Badge className={priorityColors[project.priority]} variant="secondary">
-                    {project.priority}
-                  </Badge>
+                  <CardTitle className="text-base flex-1 min-w-0 pr-2">{project.name}</CardTitle>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge className={priorityColors[project.priority]} variant="secondary">
+                      {project.priority}
+                    </Badge>
+                    <ActionMenu
+                      onEdit={() => openEdit(project)}
+                      onDelete={() => setDeleteId(project.id)}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2 mt-1">
                   <Badge variant="outline" className="text-xs">{project.type}</Badge>
@@ -229,9 +295,15 @@ export default function Projects() {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        title="Supprimer le projet"
+        description="Cette action est irréversible. Toutes les tâches associées seront également supprimées."
+        onConfirm={() => deleteId && deleteProject.mutate(deleteId)}
+        loading={deleteProject.isPending}
+      />
     </div>
   );
 }
-
-// Re-export FolderKanban for empty state
-import { FolderKanban } from "lucide-react";

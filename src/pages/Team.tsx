@@ -1,10 +1,19 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Mail, FolderKanban, ListTodo } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Mail, FolderKanban, ListTodo, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { ActionMenu } from "@/components/ActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const roleColors: Record<string, string> = {
   Admin: "bg-primary/10 text-primary",
@@ -16,10 +25,19 @@ const roleColors: Record<string, string> = {
 const avatarColors = ["bg-primary", "bg-success", "bg-warning", "bg-destructive"];
 
 export default function Team() {
+  const [open, setOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("Développeur");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*");
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -43,6 +61,61 @@ export default function Team() {
     },
   });
 
+  const resetForm = () => {
+    setFullName(""); setEmail(""); setRole("Développeur");
+    setEditingMember(null);
+  };
+
+  const openEdit = (m: any) => {
+    setEditingMember(m);
+    setFullName(m.full_name || "");
+    setEmail(m.email || "");
+    setRole(m.role || "Développeur");
+    setOpen(true);
+  };
+
+  const saveMember = useMutation({
+    mutationFn: async () => {
+      if (editingMember) {
+        const { error } = await supabase.from("profiles").update({
+          full_name: fullName,
+          email: email || null,
+          role,
+        }).eq("id", editingMember.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("profiles").insert({
+          id: crypto.randomUUID(),
+          full_name: fullName,
+          email: email || null,
+          role,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      setOpen(false);
+      resetForm();
+      toast({ title: editingMember ? "Membre modifié" : "Membre ajouté avec succès" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMember = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("profiles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      setDeleteId(null);
+      toast({ title: "Membre supprimé" });
+    },
+  });
+
   const getInitials = (name: string | null) => {
     if (!name) return "??";
     return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -53,37 +126,85 @@ export default function Team() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-heading font-bold">Équipe</h1>
-        <p className="text-muted-foreground mt-1">Gérez vos membres et leur charge de travail</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Équipe</h1>
+          <p className="text-muted-foreground mt-1">Gérez vos membres et leur charge de travail</p>
+        </div>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-2" />Ajouter un membre</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingMember ? "Modifier le membre" : "Ajouter un membre"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); saveMember.mutate(); }} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Nom complet</Label>
+                <Input placeholder="Jean Dupont" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" placeholder="jean@exemple.fr" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Rôle</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Chef de projet">Chef de projet</SelectItem>
+                    <SelectItem value="Développeur">Développeur</SelectItem>
+                    <SelectItem value="Designer">Designer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" className="w-full" disabled={saveMember.isPending}>
+                {saveMember.isPending ? "Enregistrement..." : editingMember ? "Enregistrer" : "Ajouter le membre"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="p-5 text-center">
-            <p className="text-3xl font-heading font-bold">{profiles.length}</p>
-            <p className="text-sm text-muted-foreground mt-1">Membres</p>
+          <CardContent className="p-5 flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-primary/10"><Users className="h-5 w-5 text-primary" /></div>
+            <div>
+              <p className="text-2xl font-heading font-bold">{profiles.length}</p>
+              <p className="text-sm text-muted-foreground">Membres</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5 text-center">
-            <p className="text-3xl font-heading font-bold">{totalTasks}</p>
-            <p className="text-sm text-muted-foreground mt-1">Tâches totales</p>
+          <CardContent className="p-5 flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-warning/10"><ListTodo className="h-5 w-5 text-warning" /></div>
+            <div>
+              <p className="text-2xl font-heading font-bold">{totalTasks}</p>
+              <p className="text-sm text-muted-foreground">Tâches totales</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5 text-center">
-            <p className="text-3xl font-heading font-bold">
-              {totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0}%
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">Taux de complétion</p>
+          <CardContent className="p-5 flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-success/10"><FolderKanban className="h-5 w-5 text-success" /></div>
+            <div>
+              <p className="text-2xl font-heading font-bold">
+                {totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0}%
+              </p>
+              <p className="text-sm text-muted-foreground">Complétion</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {profiles.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          <p>Aucun membre pour le moment.</p>
+          <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p>Aucun membre pour le moment</p>
+          <p className="text-sm">Ajoutez votre premier membre d'équipe</p>
         </div>
       )}
 
@@ -104,12 +225,20 @@ export default function Team() {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium truncate">{member.full_name || "Sans nom"}</h3>
-                      <Badge className={roleColors[member.role] || ""} variant="secondary">{member.role}</Badge>
+                      <h3 className="font-medium truncate pr-2">{member.full_name || "Sans nom"}</h3>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Badge className={roleColors[member.role] || ""} variant="secondary">{member.role}</Badge>
+                        <ActionMenu
+                          onEdit={() => openEdit(member)}
+                          onDelete={() => setDeleteId(member.id)}
+                        />
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <Mail className="h-3 w-3" />{member.email}
-                    </p>
+                    {member.email && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                        <Mail className="h-3 w-3" />{member.email}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -138,6 +267,15 @@ export default function Team() {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        title="Supprimer le membre"
+        description="Ce membre sera définitivement supprimé de l'équipe."
+        onConfirm={() => deleteId && deleteMember.mutate(deleteId)}
+        loading={deleteMember.isPending}
+      />
     </div>
   );
 }
