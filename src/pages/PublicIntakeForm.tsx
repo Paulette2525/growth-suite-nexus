@@ -186,7 +186,10 @@ export default function PublicIntakeForm() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Décrivez votre projet en détail *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Décrivez votre projet en détail *</Label>
+                  <VoiceInput onTranscript={(t) => update("description", form.description + (form.description ? " " : "") + t)} />
+                </div>
                 <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} required placeholder="Quels sont les objectifs de votre projet ? Quel problème résout-il ? Comment souhaitez-vous qu'il fonctionne ?" rows={4} />
               </div>
               <div className="space-y-2">
@@ -201,7 +204,10 @@ export default function PublicIntakeForm() {
             <CardHeader><CardTitle className="text-base">Fonctionnalités & Design</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Fonctionnalités souhaitées *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Fonctionnalités souhaitées *</Label>
+                  <VoiceInput onTranscript={(t) => update("keyFeatures", form.keyFeatures + (form.keyFeatures ? " " : "") + t)} />
+                </div>
                 <Textarea value={form.keyFeatures} onChange={(e) => update("keyFeatures", e.target.value)} required placeholder="Listez les fonctionnalités que vous souhaitez :&#10;- Inscription / Connexion&#10;- Tableau de bord&#10;- Paiement en ligne&#10;- ..." rows={5} />
               </div>
               <div className="space-y-2">
@@ -239,7 +245,10 @@ export default function PublicIntakeForm() {
                 <Input value={form.techPreferences} onChange={(e) => update("techPreferences", e.target.value)} placeholder="Ex: React, Stripe, API tierce..." />
               </div>
               <div className="space-y-2">
-                <Label>Autre chose à nous dire ?</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Autre chose à nous dire ?</Label>
+                  <VoiceInput onTranscript={(t) => update("additionalNotes", form.additionalNotes + (form.additionalNotes ? " " : "") + t)} />
+                </div>
                 <Textarea value={form.additionalNotes} onChange={(e) => update("additionalNotes", e.target.value)} placeholder="Toute information utile..." rows={3} />
               </div>
             </CardContent>
