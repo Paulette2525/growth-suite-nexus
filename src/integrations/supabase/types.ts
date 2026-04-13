@@ -24,7 +24,7 @@ export type Database = {
           phone: string | null
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           company?: string | null
@@ -35,7 +35,7 @@ export type Database = {
           phone?: string | null
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           company?: string | null
@@ -46,7 +46,7 @@ export type Database = {
           phone?: string | null
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -61,7 +61,7 @@ export type Database = {
           project_id: string | null
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount?: number
@@ -73,7 +73,7 @@ export type Database = {
           project_id?: string | null
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -85,7 +85,7 @@ export type Database = {
           project_id?: string | null
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -183,7 +183,7 @@ export type Database = {
           status: string
           type: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           client_id?: string | null
@@ -197,7 +197,7 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           client_id?: string | null
@@ -211,7 +211,7 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
