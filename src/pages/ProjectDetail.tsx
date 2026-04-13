@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Calendar, Users, GripVertical, ListTodo, Copy, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Users, GripVertical, ListTodo, Copy, Check, Sparkles, Bug, ExternalLink, CheckCircle2, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,8 +39,12 @@ export default function ProjectDetail() {
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [copied, setCopied] = useState(false);
+  const [bugLinkCopied, setBugLinkCopied] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const bugReportUrl = `https://growth-suite-nexus.lovable.app/bug/${id}`;
 
   const { data: project } = useQuery({
     queryKey: ["project", id],
@@ -76,6 +80,19 @@ export default function ProjectDetail() {
         .select("generated_prompt")
         .eq("project_id", id!)
         .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: bugReports = [] } = useQuery({
+    queryKey: ["bug-reports", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bug_reports")
+        .select("*")
+        .eq("project_id", id!)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -155,6 +172,36 @@ export default function ProjectDetail() {
     },
   });
 
+  const resolveBug = useMutation({
+    mutationFn: async (bug: any) => {
+      // Update status
+      const { error } = await supabase
+        .from("bug_reports")
+        .update({ status: "résolu" })
+        .eq("id", bug.id);
+      if (error) throw error;
+
+      // Send email if reporter has email
+      if (bug.reporter_email) {
+        await supabase.functions.invoke("send-bug-resolved", {
+          body: {
+            bugTitle: bug.title,
+            reporterEmail: bug.reporter_email,
+            reporterName: bug.reporter_name,
+            projectName: project?.name || "Projet",
+          },
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bug-reports", id] });
+      toast({ title: "Bug marqué comme résolu", description: "Un email a été envoyé au client." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleDrop = (columnId: string) => {
     if (!draggedTask) return;
     updateTaskStatus.mutate({ taskId: draggedTask, status: columnId });
@@ -163,6 +210,8 @@ export default function ProjectDetail() {
 
   const doneCount = tasks.filter((t: any) => t.status === "done").length;
   const progress = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+  const openBugs = bugReports.filter((b: any) => b.status === "ouvert");
+  const resolvedBugs = bugReports.filter((b: any) => b.status === "résolu");
 
   if (!project) {
     return (
@@ -231,6 +280,37 @@ export default function ProjectDetail() {
         </Card>
       </div>
 
+      {/* Bug Report Link */}
+      <Card className="border-destructive/20">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <Bug className="h-5 w-5 text-destructive shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Lien de signalement de bugs</p>
+            <p className="text-xs text-muted-foreground">Partagez ce lien avec votre client pour qu'il puisse signaler des bugs.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(bugReportUrl);
+                setBugLinkCopied(true);
+                setTimeout(() => setBugLinkCopied(false), 2000);
+                toast({ title: "Lien copié !" });
+              }}
+            >
+              {bugLinkCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+              {bugLinkCopied ? "Copié" : "Copier"}
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={bugReportUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-heading font-semibold">Tableau Kanban</h2>
         <Button size="sm" onClick={() => { resetTaskForm(); setTaskDialogOpen(true); }}>
@@ -295,6 +375,66 @@ export default function ProjectDetail() {
         ))}
       </div>
 
+      {/* Bug Reports Section */}
+      {bugReports.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Bug className="h-5 w-5 text-destructive" />
+            <h2 className="text-lg font-heading font-semibold">
+              Bugs signalés
+              {openBugs.length > 0 && (
+                <Badge variant="destructive" className="ml-2">{openBugs.length} ouvert{openBugs.length > 1 ? "s" : ""}</Badge>
+              )}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {bugReports.map((bug: any) => (
+              <Card key={bug.id} className={bug.status === "résolu" ? "opacity-60" : "border-destructive/30"}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={bug.status === "ouvert" ? "destructive" : "secondary"} className="text-xs">
+                          {bug.status === "ouvert" ? "Ouvert" : "✓ Résolu"}
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-sm">{bug.title}</p>
+                    </div>
+                    {bug.status === "ouvert" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 text-xs gap-1 border-green-500/30 text-green-600 hover:bg-green-50 hover:text-green-700"
+                        onClick={() => resolveBug.mutate(bug)}
+                        disabled={resolveBug.isPending}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Résolu
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-3">{bug.description}</p>
+                  {bug.image_url && (
+                    <button
+                      onClick={() => setPreviewImage(bug.image_url)}
+                      className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    >
+                      <ImageIcon className="h-3.5 w-3.5" />
+                      Voir la capture
+                    </button>
+                  )}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t">
+                    <span>Par {bug.reporter_name}</span>
+                    <span>{new Date(bug.created_at).toLocaleDateString("fr-FR")}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Lovable Prompt Section */}
       {intakeForm?.generated_prompt && (
         <Card>
@@ -326,6 +466,18 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Capture d'écran du bug</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <img src={previewImage} alt="Bug screenshot" className="w-full rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={taskDialogOpen} onOpenChange={(v) => { setTaskDialogOpen(v); if (!v) resetTaskForm(); }}>
         <DialogContent>
