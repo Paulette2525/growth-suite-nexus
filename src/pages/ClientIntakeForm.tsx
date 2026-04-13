@@ -9,7 +9,7 @@ export default function ClientIntakeForm() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const formUrl = `${window.location.origin}/formulaire`;
+  const formUrl = "https://growth-suite-nexus.lovable.app/formulaire";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(formUrl);
