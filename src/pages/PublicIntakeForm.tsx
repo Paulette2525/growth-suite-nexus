@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Loader2, CheckCircle2, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Loader2, CheckCircle2, ArrowLeft, Eye, Pencil } from "lucide-react";
 import { VoiceInput } from "@/components/VoiceInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,42 +25,116 @@ const pageOptions = [
 const visualStyles = ["Moderne & épuré", "Coloré & dynamique", "Sobre & professionnel", "Luxe & élégant"];
 const brandTones = ["Sérieux", "Décontracté", "Premium", "Jeune & fun"];
 
+// Suggestion chips for key fields
+const productSuggestions = ["Coaching / Formation", "Logiciel / App", "Services B2B", "E-commerce / Produits physiques", "Consulting", "Agence créative"];
+const audienceSuggestions = ["Entrepreneurs", "PME / TPE", "Particuliers", "Étudiants", "Grandes entreprises", "Freelances"];
+const featureSuggestions = [
+  "Paiement en ligne", "Réservation / Prise de RDV", "Chat en direct", "Newsletter",
+  "Tableau de bord", "Système de notifications", "Avis clients", "Multi-langue",
+  "Connexion / Inscription", "Recherche avancée", "Intégration API", "CRM intégré",
+];
+const colorSuggestions = ["Bleu marine", "Noir & or", "Vert nature", "Rouge & blanc", "Pastel doux", "Violet premium"];
+
+type FormState = {
+  clientName: string;
+  clientEmail: string;
+  clientCompany: string;
+  productDescription: string;
+  offersDescription: string;
+  existingWebsite: string;
+  idealCustomer: string;
+  competitors: string;
+  positioning: string;
+  projectName: string;
+  projectType: string;
+  description: string;
+  desiredPages: string[];
+  keyFeatures: string[];
+  designReferences: string;
+  primaryColors: string;
+  visualStyle: string;
+  brandTone: string;
+  hasExistingBranding: boolean;
+  desiredDeadline: string;
+  additionalNotes: string;
+};
+
+function SuggestionChips({ suggestions, onSelect, label }: { suggestions: string[]; onSelect: (s: string) => void; label?: string }) {
+  return (
+    <div className="space-y-1">
+      {label && <p className="text-xs text-muted-foreground">{label}</p>}
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s) => (
+          <Badge
+            key={s}
+            variant="outline"
+            className="cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors text-xs"
+            onClick={() => onSelect(s)}
+          >
+            + {s}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewSection({ title, children, onEdit }: { title: string; children: React.ReactNode; onEdit: () => void }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Button variant="ghost" size="sm" onClick={onEdit} className="gap-1 text-xs h-7">
+          <Pencil className="h-3 w-3" /> Modifier
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">{children}</CardContent>
+    </Card>
+  );
+}
+
+function ReviewField({ label, value }: { label: string; value: string | undefined | null }) {
+  return (
+    <div>
+      <span className="text-muted-foreground">{label} : </span>
+      <span className="font-medium">{value || <span className="italic text-muted-foreground/60">Non renseigné</span>}</span>
+    </div>
+  );
+}
+
 export default function PublicIntakeForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState<"form" | "review">("form");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [brandGuideFile, setBrandGuideFile] = useState<File | null>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     clientName: "",
     clientEmail: "",
     clientCompany: "",
-    // Activité & Offres
     productDescription: "",
     offersDescription: "",
     existingWebsite: "",
-    // Cible & Marché
     idealCustomer: "",
     competitors: "",
     positioning: "",
-    // Projet
     projectName: "",
     projectType: "SaaS",
     description: "",
-    desiredPages: [] as string[],
+    desiredPages: [],
+    keyFeatures: [],
     designReferences: "",
-    // Identité visuelle
     primaryColors: "",
     visualStyle: "",
     brandTone: "",
     hasExistingBranding: false,
-    // Délais & Notes
     desiredDeadline: "",
     additionalNotes: "",
   });
 
-  const update = (field: string, value: any) =>
+  const update = (field: keyof FormState, value: any) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const togglePage = (page: string) => {
@@ -69,6 +144,21 @@ export default function PublicIntakeForm() {
         ? prev.desiredPages.filter((p) => p !== page)
         : [...prev.desiredPages, page],
     }));
+  };
+
+  const toggleFeature = (feature: string) => {
+    setForm((prev) => ({
+      ...prev,
+      keyFeatures: prev.keyFeatures.includes(feature)
+        ? prev.keyFeatures.filter((f) => f !== feature)
+        : [...prev.keyFeatures, feature],
+    }));
+  };
+
+  const appendToField = (field: keyof FormState, text: string) => {
+    const current = form[field] as string;
+    const sep = current ? ", " : "";
+    update(field, current + sep + text);
   };
 
   const uploadFile = async (file: File, folder: string): Promise<string | null> => {
@@ -83,18 +173,21 @@ export default function PublicIntakeForm() {
     return data.publicUrl;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePreview = (e: React.FormEvent) => {
     e.preventDefault();
+    setStep("review");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
 
     try {
-      // Upload files
       let logoUrl: string | null = null;
       let brandGuideUrl: string | null = null;
       if (logoFile) logoUrl = await uploadFile(logoFile, "logos");
       if (brandGuideFile) brandGuideUrl = await uploadFile(brandGuideFile, "brand-guides");
 
-      // 1. Create client
       const { data: client, error: clientErr } = await supabase
         .from("clients")
         .insert({
@@ -106,7 +199,6 @@ export default function PublicIntakeForm() {
         .single();
       if (clientErr) throw clientErr;
 
-      // 2. Create project
       const { data: project, error: projErr } = await supabase
         .from("projects")
         .insert({
@@ -120,7 +212,6 @@ export default function PublicIntakeForm() {
         .single();
       if (projErr) throw projErr;
 
-      // 3. Save intake form
       const { data: intake, error: intakeErr } = await supabase
         .from("client_intake_forms")
         .insert({
@@ -131,7 +222,7 @@ export default function PublicIntakeForm() {
           project_type: form.projectType,
           description: form.description,
           target_audience: form.idealCustomer || null,
-          key_features: form.offersDescription || null,
+          key_features: form.keyFeatures.join(", ") || null,
           design_references: form.designReferences || null,
           desired_deadline: form.desiredDeadline || null,
           has_existing_branding: form.hasExistingBranding,
@@ -155,7 +246,6 @@ export default function PublicIntakeForm() {
         .single();
       if (intakeErr) throw intakeErr;
 
-      // 4. Call AI
       supabase.functions.invoke("generate-tasks", {
         body: { intakeId: intake.id, projectId: project.id },
       });
@@ -185,10 +275,106 @@ export default function PublicIntakeForm() {
     );
   }
 
+  // ===== REVIEW STEP =====
+  if (step === "review") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-3xl mx-auto p-6 space-y-6">
+          <div className="text-center space-y-2 py-4">
+            <h1 className="text-2xl font-heading font-bold flex items-center justify-center gap-2">
+              <Eye className="h-6 w-6 text-primary" />
+              Vérifiez vos informations
+            </h1>
+            <p className="text-muted-foreground">
+              Relisez attentivement avant de valider. Vous pouvez modifier chaque section.
+            </p>
+          </div>
+
+          <ReviewSection title="Vos informations" onEdit={() => setStep("form")}>
+            <ReviewField label="Nom" value={form.clientName} />
+            <ReviewField label="Email" value={form.clientEmail} />
+            <ReviewField label="Entreprise" value={form.clientCompany} />
+          </ReviewSection>
+
+          <ReviewSection title="Activité & Offres" onEdit={() => setStep("form")}>
+            <ReviewField label="Produit / Service" value={form.productDescription} />
+            <ReviewField label="Offres / Tarifs" value={form.offersDescription} />
+            <ReviewField label="Site existant" value={form.existingWebsite} />
+          </ReviewSection>
+
+          <ReviewSection title="Cible & Marché" onEdit={() => setStep("form")}>
+            <ReviewField label="Client idéal" value={form.idealCustomer} />
+            <ReviewField label="Concurrents" value={form.competitors} />
+            <ReviewField label="Positionnement" value={form.positioning} />
+          </ReviewSection>
+
+          <ReviewSection title="Votre projet" onEdit={() => setStep("form")}>
+            <ReviewField label="Nom du projet" value={form.projectName} />
+            <ReviewField label="Type" value={form.projectType} />
+            <ReviewField label="Description" value={form.description} />
+            {form.desiredPages.length > 0 && (
+              <div>
+                <span className="text-muted-foreground">Pages : </span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {form.desiredPages.map((p) => (
+                    <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {form.keyFeatures.length > 0 && (
+              <div>
+                <span className="text-muted-foreground">Fonctionnalités : </span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {form.keyFeatures.map((f) => (
+                    <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <ReviewField label="Sites inspirants" value={form.designReferences} />
+          </ReviewSection>
+
+          <ReviewSection title="Identité visuelle" onEdit={() => setStep("form")}>
+            <ReviewField label="Couleurs" value={form.primaryColors} />
+            <ReviewField label="Style visuel" value={form.visualStyle} />
+            <ReviewField label="Ambiance / ton" value={form.brandTone} />
+            <ReviewField label="Branding existant" value={form.hasExistingBranding ? "Oui" : "Non"} />
+            {logoFile && <ReviewField label="Logo" value={logoFile.name} />}
+            {brandGuideFile && <ReviewField label="Charte graphique" value={brandGuideFile.name} />}
+          </ReviewSection>
+
+          <ReviewSection title="Délais & Notes" onEdit={() => setStep("form")}>
+            <ReviewField label="Deadline" value={form.desiredDeadline} />
+            <ReviewField label="Notes" value={form.additionalNotes} />
+          </ReviewSection>
+
+          <Separator />
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setStep("form")} className="gap-2">
+              <ArrowLeft className="h-4 w-4" /> Retour au formulaire
+            </Button>
+            <Button size="lg" className="flex-1" onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi en cours...</>
+              ) : (
+                <><CheckCircle2 className="h-4 w-4 mr-2" />Tout est correct, valider !</>
+              )}
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground pb-6">Merci de votre confiance</p>
+        </div>
+        <Toaster />
+      </div>
+    );
+  }
+
+  // ===== FORM STEP =====
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto p-6 space-y-6">
-        {/* Header */}
         <div className="text-center space-y-2 py-4">
           <h1 className="text-2xl font-heading font-bold flex items-center justify-center gap-2">
             <FileText className="h-6 w-6 text-primary" />
@@ -199,7 +385,7 @@ export default function PublicIntakeForm() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handlePreview} className="space-y-6">
           {/* 1. Client info */}
           <Card>
             <CardHeader><CardTitle className="text-base">Vos informations</CardTitle></CardHeader>
@@ -231,6 +417,7 @@ export default function PublicIntakeForm() {
                   <VoiceInput onTranscript={(t) => update("productDescription", form.productDescription + (form.productDescription ? " " : "") + t)} />
                 </div>
                 <Textarea value={form.productDescription} onChange={(e) => update("productDescription", e.target.value)} required placeholder="Décrivez votre produit ou service principal..." rows={3} />
+                <SuggestionChips label="Cliquez pour ajouter :" suggestions={productSuggestions} onSelect={(s) => appendToField("productDescription", s)} />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -256,6 +443,7 @@ export default function PublicIntakeForm() {
                   <VoiceInput onTranscript={(t) => update("idealCustomer", form.idealCustomer + (form.idealCustomer ? " " : "") + t)} />
                 </div>
                 <Textarea value={form.idealCustomer} onChange={(e) => update("idealCustomer", e.target.value)} required placeholder="Décrivez votre client type : âge, profession, besoins..." rows={3} />
+                <SuggestionChips label="Cliquez pour ajouter :" suggestions={audienceSuggestions} onSelect={(s) => appendToField("idealCustomer", s)} />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -318,6 +506,23 @@ export default function PublicIntakeForm() {
                 </div>
               </div>
 
+              {/* Features checkboxes */}
+              <div className="space-y-3">
+                <Label>Fonctionnalités souhaitées</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {featureSuggestions.map((feat) => (
+                    <div key={feat} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`feat-${feat}`}
+                        checked={form.keyFeatures.includes(feat)}
+                        onCheckedChange={() => toggleFeature(feat)}
+                      />
+                      <label htmlFor={`feat-${feat}`} className="text-sm cursor-pointer">{feat}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Exemples de sites qui vous plaisent</Label>
@@ -335,24 +540,12 @@ export default function PublicIntakeForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Upload votre logo</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                      className="text-sm"
-                    />
-                  </div>
+                  <Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="text-sm" />
                   {logoFile && <p className="text-xs text-muted-foreground">{logoFile.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Charte graphique (PDF / image)</Label>
-                  <Input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => setBrandGuideFile(e.target.files?.[0] || null)}
-                    className="text-sm"
-                  />
+                  <Input type="file" accept="image/*,.pdf" onChange={(e) => setBrandGuideFile(e.target.files?.[0] || null)} className="text-sm" />
                   {brandGuideFile && <p className="text-xs text-muted-foreground">{brandGuideFile.name}</p>}
                 </div>
               </div>
@@ -363,6 +556,7 @@ export default function PublicIntakeForm() {
                   <VoiceInput onTranscript={(t) => update("primaryColors", form.primaryColors + (form.primaryColors ? " " : "") + t)} />
                 </div>
                 <Input value={form.primaryColors} onChange={(e) => update("primaryColors", e.target.value)} placeholder="Ex: bleu marine, doré, blanc..." />
+                <SuggestionChips label="Inspirations :" suggestions={colorSuggestions} onSelect={(s) => appendToField("primaryColors", s)} />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -413,18 +607,13 @@ export default function PublicIntakeForm() {
 
           <Separator />
 
-          <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi en cours...</>
-            ) : (
-              <>Envoyer ma demande de projet</>
-            )}
+          <Button type="submit" size="lg" className="w-full gap-2">
+            <Eye className="h-4 w-4" />
+            Prévisualiser avant d'envoyer
           </Button>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground pb-6">
-          Merci de votre confiance
-        </p>
+        <p className="text-center text-xs text-muted-foreground pb-6">Merci de votre confiance</p>
       </div>
       <Toaster />
     </div>
