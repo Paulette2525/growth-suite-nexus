@@ -1,64 +1,67 @@
 
 
-## Plan : Optimisation du formulaire client pour création automatique
+## Plan : Refonte du formulaire client avec questions stratégiques complètes
 
 ### Objectif
-Transformer le formulaire public `/formulaire` pour collecter toutes les informations nécessaires à la création automatique d'une première version de la plateforme, sans avoir à recontacter le client.
+Collecter toutes les informations nécessaires pour créer automatiquement la première version de la plateforme du client.
 
-### Changements
+### Supprimer
+- Budget estimé
+- Préférences techniques
 
-#### 1. Supprimer du formulaire
-- **Budget estimé** (select)
-- **Préférences techniques** (input)
+### Nouvelles sections (ordre final)
 
-#### 2. Nouvelles questions stratégiques à ajouter
+**1. Vos informations** (inchangé) — nom, email, entreprise
 
-**Section "Identité visuelle"** (remplace l'ancien toggle branding) :
-- **Upload logo** : champ fichier pour uploader un logo (stocké dans le bucket `bug-images` ou un nouveau bucket `client-assets`)
-- **Upload charte graphique** : champ fichier pour uploader un PDF ou images de charte
-- **Couleurs préférées** : input texte — "Quelles couleurs souhaitez-vous ? (ex: bleu foncé, doré, blanc)" + micro
-- **Style visuel souhaité** : select avec options (Moderne & épuré, Coloré & dynamique, Sobre & professionnel, Luxe & élégant, Autre)
-- **Ambiance / ton** : select (Sérieux, Décontracté, Premium, Jeune & fun)
+**2. Votre activité & Offres**
+- Que vendez-vous / proposez-vous ? (textarea + micro)
+- Quelles sont vos offres / formules / tarifs ? (textarea + micro)
+- Avez-vous un site ou réseau social existant ? (input URL)
 
-**Section "Votre activité"** (nouvelle) :
-- **Que vendez-vous / proposez-vous ?** : textarea + micro — produits, services, offres
-- **Quelles sont vos offres / formules ?** : textarea + micro — détail des prix, packs, abonnements
-- **Avez-vous un site ou réseau social existant ?** : input — URL du site actuel, Instagram, etc.
+**3. Cible & Marché** (nouveau)
+- Qui est votre client idéal ? (textarea + micro)
+- Quels sont vos principaux concurrents ? (textarea + micro)
+- Quel est votre positionnement / différence clé ? (textarea + micro)
 
-**Section "Structure souhaitée"** (nouvelle) :
-- **Quelles pages souhaitez-vous ?** : checkboxes multiples (Accueil, À propos, Services/Offres, Contact, Blog, Témoignages, FAQ, Espace client, Portfolio, Boutique en ligne, Autre)
-- **Avez-vous des exemples de sites qui vous plaisent ?** : textarea (déplace les "références design" ici) + micro
+**4. Votre projet**
+- Nom du projet, type, description détaillée (existant)
+- Quelles pages souhaitez-vous ? — checkboxes : Accueil, À propos, Services/Offres, Contact, Blog, Témoignages, FAQ, Espace client, Portfolio, Boutique en ligne
+- Exemples de sites qui vous plaisent ? (textarea + micro, remplace "références design")
 
-#### 3. Réorganisation des sections
-1. **Vos informations** — nom, email, entreprise (inchangé)
-2. **Votre activité** — produit/service, offres, site existant, cible
-3. **Votre projet** — nom, type, description détaillée, pages souhaitées
-4. **Identité visuelle** — logo upload, charte upload, couleurs, style, ambiance, exemples de sites
-5. **Délais & Notes** — deadline, "autre chose à nous dire"
+**5. Identité visuelle**
+- Upload logo (fichier image)
+- Upload charte graphique (PDF/image)
+- Couleurs préférées (input texte + micro)
+- Style visuel : select (Moderne & épuré, Coloré & dynamique, Sobre & professionnel, Luxe & élégant)
+- Ambiance / ton : select (Sérieux, Décontracté, Premium, Jeune & fun)
 
-#### 4. Migration SQL
-Ajouter les colonnes à `client_intake_forms` :
+**6. Délais & Notes**
+- Deadline souhaitée (inchangé)
+- Autre chose à nous dire (textarea + micro, inchangé)
+
+### Migration SQL
+Ajouter à `client_intake_forms` :
 - `primary_colors` text
 - `visual_style` text
 - `brand_tone` text
 - `product_description` text
 - `offers_description` text
 - `existing_website` text
-- `desired_pages` jsonb (array de strings)
+- `ideal_customer` text
+- `competitors` text
+- `positioning` text
+- `desired_pages` jsonb
 - `logo_url` text
 - `brand_guide_url` text
 
-#### 5. Bucket storage
-Créer un bucket `client-assets` (public) pour les uploads de logos et chartes graphiques.
+### Storage
+Créer bucket `client-assets` (public) pour logos et chartes.
 
-#### 6. Mise à jour de l'edge function
-Mettre à jour `generate-tasks/index.ts` pour inclure les nouveaux champs dans le `formSummary` envoyé à l'IA, afin que les tâches et le prompt générés soient plus précis.
+### Edge Function
+Mettre à jour `generate-tasks/index.ts` pour inclure tous les nouveaux champs dans le prompt IA (activité, cible, marché, identité visuelle, pages souhaitées).
 
-#### 7. Micro (VoiceInput)
-Ajouter le micro sur tous les nouveaux champs textarea : produit/service, offres, couleurs préférées.
-
-### Technique
-- 1 migration SQL (nouvelles colonnes + bucket)
-- Modifications : `PublicIntakeForm.tsx` (refonte complète du formulaire), `generate-tasks/index.ts` (nouveaux champs dans le prompt IA)
-- Pas de nouvelles dépendances
+### Fichiers modifiés
+- `PublicIntakeForm.tsx` — refonte complète
+- `generate-tasks/index.ts` — enrichissement du prompt
+- 1 migration SQL
 
