@@ -81,6 +81,7 @@ export default function ProjectDetail() {
     },
   });
 
+  const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id, full_name");
