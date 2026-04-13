@@ -39,11 +39,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-sm">
-            P
+            A
           </div>
           {!collapsed && (
-            <span className="font-heading font-semibold text-lg text-foreground">
-              ProGest
+            <span className="font-heading font-semibold text-lg text-foreground truncate">
+              Automax-dev
             </span>
           )}
         </div>

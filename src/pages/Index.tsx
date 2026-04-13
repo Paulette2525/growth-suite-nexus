@@ -66,7 +66,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-heading font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Vue d'ensemble de vos projets et activités</p>
+        <p className="text-muted-foreground mt-1">Vue d'ensemble de vos projets SaaS et activités</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
