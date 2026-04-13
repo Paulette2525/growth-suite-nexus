@@ -23,6 +23,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public form — no sidebar/layout */}
+          <Route path="/formulaire" element={<PublicIntakeForm />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/intake" element={<ClientIntakeForm />} />
