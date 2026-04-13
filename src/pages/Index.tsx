@@ -3,11 +3,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { FolderKanban, ListTodo, Users, Receipt, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Dashboard() {
-  const { user } = useAuth();
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
