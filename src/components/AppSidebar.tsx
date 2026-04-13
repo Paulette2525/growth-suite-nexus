@@ -5,6 +5,7 @@ import {
   UserCircle,
   Receipt,
   ChevronLeft,
+  FilePlus2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -23,6 +24,7 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Nouveau projet", url: "/intake", icon: FilePlus2 },
   { title: "Projets", url: "/projets", icon: FolderKanban },
   { title: "Équipe", url: "/equipe", icon: Users },
   { title: "Clients", url: "/clients", icon: UserCircle },
