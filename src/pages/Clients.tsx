@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Mail, Phone, FolderKanban, UserCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ export default function Clients() {
   const [status, setStatus] = useState("Actif");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -164,7 +166,7 @@ export default function Clients() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((client: any) => (
-          <Card key={client.id} className="hover:shadow-md transition-shadow">
+          <Card key={client.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/clients/${client.id}`)}>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-heading font-semibold flex-1 min-w-0 truncate pr-2">{client.name}</h3>

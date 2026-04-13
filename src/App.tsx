@@ -10,6 +10,8 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Team from "./pages/Team";
 import Clients from "./pages/Clients";
 import Billing from "./pages/Billing";
+import ClientDetail from "./pages/ClientDetail";
+import TeamMemberDetail from "./pages/TeamMemberDetail";
 import ClientIntakeForm from "./pages/ClientIntakeForm";
 import PublicIntakeForm from "./pages/PublicIntakeForm";
 import BugReport from "./pages/BugReport";
@@ -33,7 +35,9 @@ const App = () => (
             <Route path="/projets" element={<Projects />} />
             <Route path="/projets/:id" element={<ProjectDetail />} />
             <Route path="/equipe" element={<Team />} />
+            <Route path="/equipe/:id" element={<TeamMemberDetail />} />
             <Route path="/clients" element={<Clients />} />
+            <Route path="/clients/:id" element={<ClientDetail />} />
             <Route path="/facturation" element={<Billing />} />
           </Route>
           <Route path="*" element={<NotFound />} />
