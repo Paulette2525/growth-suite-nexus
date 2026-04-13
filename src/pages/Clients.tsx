@@ -18,7 +18,6 @@ export default function Clients() {
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
   const { toast } = useToast();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: clients = [] } = useQuery({

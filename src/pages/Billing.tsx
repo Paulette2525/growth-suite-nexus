@@ -25,7 +25,6 @@ export default function Billing() {
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
   const { toast } = useToast();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: invoices = [] } = useQuery({

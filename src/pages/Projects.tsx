@@ -40,7 +40,6 @@ export default function Projects() {
   const [deadline, setDeadline] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: projects = [] } = useQuery({
