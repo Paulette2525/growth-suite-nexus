@@ -10,6 +10,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Team from "./pages/Team";
 import Clients from "./pages/Clients";
 import Billing from "./pages/Billing";
+import ClientIntakeForm from "./pages/ClientIntakeForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/intake" element={<ClientIntakeForm />} />
             <Route path="/projets" element={<Projects />} />
             <Route path="/projets/:id" element={<ProjectDetail />} />
             <Route path="/equipe" element={<Team />} />
