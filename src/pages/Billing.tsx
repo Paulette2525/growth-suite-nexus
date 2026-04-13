@@ -61,7 +61,6 @@ export default function Billing() {
     mutationFn: async () => {
       const { error } = await supabase.from("invoices").insert({
         invoice_number: invoiceNumber,
-        invoice_number: invoiceNumber,
         amount: parseFloat(amount),
         client_id: clientId || null,
         project_id: projectId || null,

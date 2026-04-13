@@ -36,7 +36,6 @@ export default function Clients() {
     mutationFn: async () => {
       const { error } = await supabase.from("clients").insert({
         name,
-        name,
         email: email || null,
         phone: phone || null,
         company: company || null,

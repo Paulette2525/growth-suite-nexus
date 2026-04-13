@@ -58,7 +58,6 @@ export default function Projects() {
     mutationFn: async () => {
       const { error } = await supabase.from("projects").insert({
         name,
-        name,
         type,
         priority,
         description: description || null,
