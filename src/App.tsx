@@ -11,6 +11,7 @@ import Team from "./pages/Team";
 import Clients from "./pages/Clients";
 import Billing from "./pages/Billing";
 import ClientIntakeForm from "./pages/ClientIntakeForm";
+import PublicIntakeForm from "./pages/PublicIntakeForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
