@@ -14,7 +14,266 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount: number
+          client_id: string | null
+          created_at: string
+          date: string
+          id: string
+          invoice_number: string
+          project_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          invoice_number: string
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          invoice_number?: string
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_members: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          deadline: string | null
+          description: string | null
+          id: string
+          name: string
+          priority: string
+          start_date: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          priority: string
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

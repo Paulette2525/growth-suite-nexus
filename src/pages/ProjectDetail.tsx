@@ -3,25 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, Plus, Calendar, Users, GripVertical } from "lucide-react";
 import { useState } from "react";
-
-interface Task {
-  id: string;
-  title: string;
-  assignee: string;
-  priority: "Haute" | "Moyenne" | "Basse";
-  status: "todo" | "in_progress" | "done";
-}
-
-const initialTasks: Task[] = [
-  { id: "1", title: "Maquettes UI/UX", assignee: "Marie", priority: "Haute", status: "done" },
-  { id: "2", title: "Développement frontend", assignee: "Thomas", priority: "Haute", status: "in_progress" },
-  { id: "3", title: "Intégration API", assignee: "Lucas", priority: "Moyenne", status: "in_progress" },
-  { id: "4", title: "Tests unitaires", assignee: "Marie", priority: "Moyenne", status: "todo" },
-  { id: "5", title: "Déploiement staging", assignee: "Thomas", priority: "Basse", status: "todo" },
-  { id: "6", title: "Documentation", assignee: "Lucas", priority: "Basse", status: "todo" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const columns = [
   { id: "todo" as const, title: "À faire", color: "bg-muted" },
@@ -38,23 +25,81 @@ const priorityDot: Record<string, string> = {
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [addingTask, setAddingTask] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleDragStart = (taskId: string) => {
-    setDraggedTask(taskId);
-  };
+  const { data: project } = useQuery({
+    queryKey: ["project", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*, clients(name)")
+        .eq("id", id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  const handleDrop = (columnId: "todo" | "in_progress" | "done") => {
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["tasks", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*, profiles(full_name)")
+        .eq("project_id", id!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const updateTaskStatus = useMutation({
+    mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
+      const { error } = await supabase.from("tasks").update({ status }).eq("id", taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", id] }),
+  });
+
+  const createTask = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("tasks").insert({
+        project_id: id!,
+        title: newTaskTitle,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", id] });
+      setNewTaskTitle("");
+      setAddingTask(false);
+      toast({ title: "Tâche ajoutée" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleDrop = (columnId: string) => {
     if (!draggedTask) return;
-    setTasks((prev) =>
-      prev.map((t) => (t.id === draggedTask ? { ...t, status: columnId } : t))
-    );
+    updateTaskStatus.mutate({ taskId: draggedTask, status: columnId });
     setDraggedTask(null);
   };
 
-  const doneCount = tasks.filter((t) => t.status === "done").length;
-  const progress = Math.round((doneCount / tasks.length) * 100);
+  const doneCount = tasks.filter((t: any) => t.status === "done").length;
+  const progress = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+
+  if (!project) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -63,22 +108,21 @@ export default function ProjectDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-heading font-bold">Site e-commerce Luxe</h1>
+          <h1 className="text-2xl font-heading font-bold">{project.name}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline">Site</Badge>
-            <Badge className="bg-primary/10 text-primary" variant="secondary">En cours</Badge>
+            <Badge variant="outline">{project.type}</Badge>
+            <Badge className="bg-primary/10 text-primary" variant="secondary">{project.status}</Badge>
           </div>
         </div>
       </div>
 
-      {/* Project Info Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <Calendar className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Échéance</p>
-              <p className="text-sm font-medium">15 mai 2026</p>
+              <p className="text-sm font-medium">{project.deadline || "—"}</p>
             </div>
           </CardContent>
         </Card>
@@ -86,15 +130,15 @@ export default function ProjectDetail() {
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Membres</p>
-              <p className="text-sm font-medium">3 assignés</p>
+              <p className="text-xs text-muted-foreground">Tâches</p>
+              <p className="text-sm font-medium">{tasks.length}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Client</p>
-            <p className="text-sm font-medium">Maison Dupont</p>
+            <p className="text-sm font-medium">{project.clients?.name || "—"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -108,7 +152,6 @@ export default function ProjectDetail() {
         </Card>
       </div>
 
-      {/* Kanban Board */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map((col) => (
           <div
@@ -121,24 +164,37 @@ export default function ProjectDetail() {
               <h3 className="font-heading font-semibold text-sm">
                 {col.title}
                 <span className="ml-2 text-muted-foreground font-normal">
-                  {tasks.filter((t) => t.status === col.id).length}
+                  {tasks.filter((t: any) => t.status === col.id).length}
                 </span>
               </h3>
               {col.id === "todo" && (
-                <Button variant="ghost" size="icon" className="h-7 w-7">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAddingTask(true)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               )}
             </div>
+
+            {col.id === "todo" && addingTask && (
+              <form onSubmit={(e) => { e.preventDefault(); createTask.mutate(); }} className="mb-3">
+                <Input
+                  autoFocus
+                  placeholder="Titre de la tâche..."
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  onBlur={() => { if (!newTaskTitle) setAddingTask(false); }}
+                />
+              </form>
+            )}
+
             <div className="space-y-3">
               {tasks
-                .filter((t) => t.status === col.id)
-                .map((task) => (
+                .filter((t: any) => t.status === col.id)
+                .map((task: any) => (
                   <Card
                     key={task.id}
                     className="cursor-grab active:cursor-grabbing shadow-sm"
                     draggable
-                    onDragStart={() => handleDragStart(task.id)}
+                    onDragStart={() => setDraggedTask(task.id)}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-2">
@@ -146,9 +202,11 @@ export default function ProjectDetail() {
                         <div className="space-y-2 flex-1 min-w-0">
                           <p className="text-sm font-medium">{task.title}</p>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">{task.assignee}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {task.profiles?.full_name || "Non assigné"}
+                            </span>
                             <div className="flex items-center gap-1">
-                              <div className={`h-2 w-2 rounded-full ${priorityDot[task.priority]}`} />
+                              <div className={`h-2 w-2 rounded-full ${priorityDot[task.priority] || "bg-muted-foreground"}`} />
                               <span className="text-xs text-muted-foreground">{task.priority}</span>
                             </div>
                           </div>
