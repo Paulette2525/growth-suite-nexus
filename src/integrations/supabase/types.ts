@@ -64,20 +64,31 @@ export type Database = {
       client_intake_forms: {
         Row: {
           additional_notes: string | null
+          brand_guide_url: string | null
+          brand_tone: string | null
           budget_range: string | null
           client_company: string | null
           client_email: string | null
           client_id: string | null
           client_name: string
+          competitors: string | null
           created_at: string
           description: string
           design_references: string | null
           desired_deadline: string | null
+          desired_pages: Json | null
+          existing_website: string | null
           generated_prompt: string | null
           generated_tasks: Json | null
           has_existing_branding: boolean | null
           id: string
+          ideal_customer: string | null
           key_features: string | null
+          logo_url: string | null
+          offers_description: string | null
+          positioning: string | null
+          primary_colors: string | null
+          product_description: string | null
           project_id: string | null
           project_name: string
           project_type: string
@@ -85,23 +96,35 @@ export type Database = {
           target_audience: string | null
           tech_preferences: string | null
           updated_at: string
+          visual_style: string | null
         }
         Insert: {
           additional_notes?: string | null
+          brand_guide_url?: string | null
+          brand_tone?: string | null
           budget_range?: string | null
           client_company?: string | null
           client_email?: string | null
           client_id?: string | null
           client_name: string
+          competitors?: string | null
           created_at?: string
           description: string
           design_references?: string | null
           desired_deadline?: string | null
+          desired_pages?: Json | null
+          existing_website?: string | null
           generated_prompt?: string | null
           generated_tasks?: Json | null
           has_existing_branding?: boolean | null
           id?: string
+          ideal_customer?: string | null
           key_features?: string | null
+          logo_url?: string | null
+          offers_description?: string | null
+          positioning?: string | null
+          primary_colors?: string | null
+          product_description?: string | null
           project_id?: string | null
           project_name: string
           project_type?: string
@@ -109,23 +132,35 @@ export type Database = {
           target_audience?: string | null
           tech_preferences?: string | null
           updated_at?: string
+          visual_style?: string | null
         }
         Update: {
           additional_notes?: string | null
+          brand_guide_url?: string | null
+          brand_tone?: string | null
           budget_range?: string | null
           client_company?: string | null
           client_email?: string | null
           client_id?: string | null
           client_name?: string
+          competitors?: string | null
           created_at?: string
           description?: string
           design_references?: string | null
           desired_deadline?: string | null
+          desired_pages?: Json | null
+          existing_website?: string | null
           generated_prompt?: string | null
           generated_tasks?: Json | null
           has_existing_branding?: boolean | null
           id?: string
+          ideal_customer?: string | null
           key_features?: string | null
+          logo_url?: string | null
+          offers_description?: string | null
+          positioning?: string | null
+          primary_colors?: string | null
+          product_description?: string | null
           project_id?: string | null
           project_name?: string
           project_type?: string
@@ -133,6 +168,7 @@ export type Database = {
           target_audience?: string | null
           tech_preferences?: string | null
           updated_at?: string
+          visual_style?: string | null
         }
         Relationships: [
           {
