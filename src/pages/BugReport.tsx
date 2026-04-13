@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Bug, Loader2, CheckCircle2, ImagePlus, X } from "lucide-react";
+import { VoiceInput } from "@/components/VoiceInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -138,7 +139,10 @@ export default function BugReport() {
                 <Input value={form.title} onChange={(e) => update("title", e.target.value)} required placeholder="Ex: Le bouton de paiement ne fonctionne pas" />
               </div>
               <div className="space-y-2">
-                <Label>Description détaillée *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Description détaillée *</Label>
+                  <VoiceInput onTranscript={(t) => update("description", form.description + (form.description ? " " : "") + t)} />
+                </div>
                 <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} required placeholder="Décrivez le problème, les étapes pour le reproduire, ce que vous attendiez..." rows={5} />
               </div>
               <div className="space-y-2">

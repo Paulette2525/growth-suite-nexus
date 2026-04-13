@@ -39,6 +39,7 @@ export default function ProjectDetail() {
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [copied, setCopied] = useState(false);
+  const [promptVisible, setPromptVisible] = useState(true);
   const [bugLinkCopied, setBugLinkCopied] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { toast } = useToast();
@@ -437,34 +438,47 @@ export default function ProjectDetail() {
 
       {/* Lovable Prompt Section */}
       {intakeForm?.generated_prompt && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Prompt Lovable généré
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(intakeForm.generated_prompt!);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                  toast({ title: "Prompt copié !" });
-                }}
-              >
-                {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                {copied ? "Copié" : "Copier"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto font-sans leading-relaxed">
-              {intakeForm.generated_prompt}
-            </pre>
-          </CardContent>
-        </Card>
+        promptVisible ? (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Prompt Lovable généré
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(intakeForm.generated_prompt!);
+                      setCopied(true);
+                      setPromptVisible(false);
+                      setTimeout(() => setCopied(false), 2000);
+                      toast({ title: "Prompt copié et masqué !" });
+                    }}
+                  >
+                    {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                    {copied ? "Copié" : "Copier"}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto font-sans leading-relaxed">
+                {intakeForm.generated_prompt}
+              </pre>
+            </CardContent>
+          </Card>
+        ) : (
+          <button
+            onClick={() => setPromptVisible(true)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 py-2"
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Revoir le prompt Lovable</span>
+          </button>
+        )
       )}
 
       {/* Image Preview Dialog */}
